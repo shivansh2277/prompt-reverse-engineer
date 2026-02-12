@@ -1,35 +1,30 @@
 # Architecture
 
-## System
+## Overview
+
+`Prompt Reverse Engineer` is a layered FastAPI application with deterministic analyzers and ensemble scoring.
 
 ```text
-Client -> FastAPI Router -> ReverseEngineeringService -> Analyzer Pipeline -> ScoringEnsemble
-                     |-> RateLimiter
-                     |-> TTL Cache
-                     |-> Request-ID + Timing Middleware
+API Router -> ReverseEngineeringService -> Analyzer Modules -> ScoringEnsemble -> Response Model
 ```
 
-## Security controls
-- Input length and batch-size validation in Pydantic models.
-- Payload size guard in HTTP middleware.
-- Per-client rate limiting + unique-content abuse guard.
-- Prompt injection detector analyzer with risk flags.
-- Safe structured logs (no raw secrets).
+## Modules
 
-## Observability
-- JSON structured logs.
-- `x-request-id` propagation.
-- Timing metrics registry by endpoint.
-- Analyzer-level scoring and trace outputs.
+- `src/server/api.py`: REST endpoints and HTTP error mapping.
+- `src/services/reverse_engineering_service.py`: orchestration and pipeline execution.
+- `src/analyzers/*.py`: focused analysis components.
+- `src/services/scoring_ensemble.py`: confidence synthesis and final merge.
+- `src/models/schemas.py`: strict request/response contracts.
+- `src/client/openai_compatible.py`: optional OpenAI-compatible integration layer.
+- `src/config.py`: dotenv/env driven settings.
 
-## Scalability and reliability
-- Stateless API endpoints.
-- Async handlers.
-- Batch endpoint for throughput.
-- Bounded TTL cache for repeat workloads.
+## Defensive Design
 
-## Quality controls
-- Confidence calibration in ensemble scorer.
-- Explainability object in output.
-- Deterministic mode + optional seed for reproducibility.
-- `.env` driven model selection and temperature override knobs.
+- Schema validation with min lengths and bounded list sizes.
+- Character and batch guards to prevent oversized payloads.
+- Graceful exception handling with logged stack traces.
+- Pure analyzer classes for easy unit testing.
+
+## Extensibility
+
+You can add model-assisted analysis by injecting `OpenAICompatibleClient` into the service layer and using `summarize()` or custom methods to enrich ensemble features.
