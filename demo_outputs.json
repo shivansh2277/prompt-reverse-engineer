@@ -1,0 +1,15 @@
+[
+  {
+    "request_id": "demo-1",
+    "cached": false,
+    "inferred_prompt": "Think step-by-step. Then answer. Task: Solve the problem step-by-step and justify each conclusion.",
+    "prompt_style": "chain-of-thought",
+    "task_type": "reasoning",
+    "constraints_detected": ["json_format", "stepwise"],
+    "temperature_estimate": "medium",
+    "reasoning_trace": ["style=chain-of-thought, task_type=reasoning"],
+    "analyzer_scores": {"structure": 0.8, "constraint": 0.6},
+    "explainability": {"summary": "Detected reasoning style.", "key_signals": ["stepwise"], "risk_flags": ["none"]},
+    "confidence_score": 0.77
+  }
+]

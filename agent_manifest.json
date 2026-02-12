@@ -1,0 +1,72 @@
+{
+  "name": "Prompt Reverse Engineer",
+  "description": "Infers likely originating prompts from LLM outputs with explainable scoring and marketplace-ready controls.",
+  "version": "2.1.0",
+  "capabilities": [
+    "prompt_reconstruction",
+    "style_classification",
+    "task_type_detection",
+    "constraint_extraction",
+    "temperature_estimation",
+    "explainability_reporting",
+    "batch_processing"
+  ],
+  "input_schema": {
+    "type": "object",
+    "required": ["output_text"],
+    "properties": {
+      "output_text": { "type": "string", "minLength": 20 },
+      "deterministic": { "type": "boolean" },
+      "seed": { "type": "integer", "minimum": 0 }
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "required": [
+      "request_id",
+      "inferred_prompt",
+      "prompt_style",
+      "task_type",
+      "constraints_detected",
+      "temperature_estimate",
+      "reasoning_trace",
+      "analyzer_scores",
+      "explainability",
+      "confidence_score"
+    ]
+  },
+  "rate_limits": {
+    "requests_per_minute": "env:MAX_REQUESTS_PER_MINUTE",
+    "per_user_quota_per_minute": "env:PER_USER_QUOTA_PER_MINUTE",
+    "per_key_quota_per_minute": "env:PER_KEY_QUOTA_PER_MINUTE"
+  },
+  "pricing_hooks": {
+    "billing_units": "env:BILLING_UNIT_CHARS",
+    "usage_meter": "src/services/usage_hooks.py",
+    "wrapper_meter": "src/agent_wrapper.py"
+  },
+  "tags": ["llm", "prompt-engineering", "analysis", "observability", "safety"],
+  "category": "AI Developer Tools",
+  "example_requests": [
+    {
+      "output_text": "Step 1: analyze the problem. Step 2: return JSON with confidence.",
+      "deterministic": true,
+      "seed": 1337
+    }
+  ],
+  "example_responses": [
+    {
+      "request_id": "demo-123",
+      "cached": false,
+      "inferred_prompt": "Think step-by-step. Then answer. Task: Solve the problem step-by-step and justify each conclusion.",
+      "prompt_style": "chain-of-thought",
+      "task_type": "reasoning",
+      "constraints_detected": ["json_format", "stepwise"],
+      "temperature_estimate": "medium",
+      "reasoning_trace": ["..."],
+      "analyzer_scores": {"structure": 0.8, "constraint": 0.6},
+      "explainability": {"summary": "Detected chain-of-thought style.", "key_signals": ["..."], "risk_flags": ["none"]},
+      "confidence_score": 0.77
+    }
+  ]
+}
