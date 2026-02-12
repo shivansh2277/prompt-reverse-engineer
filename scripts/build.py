@@ -5,8 +5,7 @@ import sys
 
 
 COMMANDS = [
-    [sys.executable, "-m", "compileall", "src", "tests", "scripts"],
-    [sys.executable, "scripts/generate_synthetic_dataset.py"],
+    [sys.executable, "-m", "pytest", "-q"],
 ]
 
 
