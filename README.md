@@ -1,51 +1,62 @@
 # Prompt Reverse Engineer
 
-Production-grade AI agent/API that infers likely prompt structures from model-generated outputs.
+Production-grade AI agent that infers likely prompt structures from model-generated output text.
 
-## Core output fields
+## What it does
 
-- inferred_prompt
-- prompt_style
-- task_type
-- constraints_detected
-- temperature_estimate
-- reasoning_trace
-- analyzer_scores
-- explainability
-- confidence_score
+Given raw LLM output, the service predicts:
 
-## Production upgrades
+- `inferred_prompt`
+- `prompt_style` (`instruction`, `role-based`, `chain-of-thought`, `template`)
+- `task_type` (`code`, `essay`, `explanation`, `reasoning`, `general`)
+- `constraints_detected`
+- `temperature_estimate` (`low`, `medium`, `high`)
+- `reasoning_trace`
+- `confidence_score` (0 to 1)
 
-### Security
-- Request rate limiting and abuse guardrails.
-- Payload size guards and strict schema validation.
-- Prompt injection detection heuristics.
-- Safe structured logging without raw secret leakage.
+## Architecture
 
-### Observability
-- Structured JSON logs.
-- Request IDs (`x-request-id`).
-- Endpoint timing metrics.
-- Analyzer scoring breakdown for traceability.
+The service uses a modular, multi-step analysis pipeline:
 
-### Scalability
-- Stateless API design.
-- Async endpoints and service pipeline.
-- Batch processing endpoint.
-- TTL cache for repeated outputs.
+1. linguistic pattern detection (`StructureAnalyzer`)
+2. constraint extraction (`ConstraintDetector`)
+3. tone detection (`ToneClassifier`)
+4. instruction/format fingerprinting (`FormatDetector`)
+5. reasoning depth estimation (`ReasoningDepthEstimator`)
+6. ensemble scoring merge (`ScoringEnsemble`)
 
-### Quality controls
-- Confidence calibration in ensemble scoring.
-- Explainability section per response.
-- Deterministic mode toggle and reproducibility seed.
-- Model/temperature config knobs via `.env`.
+See `docs/architecture.md` for details.
 
-## Endpoints
-- `GET /health`
-- `POST /reverse`
-- `POST /reverse/batch`
+## Tech stack
+
+- Python 3.11
+- FastAPI
+- Pydantic v2 models
+- Async endpoints/services
+- OpenAI-compatible async client layer
+- dotenv-based config
+- pytest
+- Docker
+
+## Project structure
+
+```text
+src/
+  analyzers/
+  client/
+  models/
+  server/
+  services/
+  utils/
+  app.py
+  main.py
+tests/
+Dockerfile
+requirements.txt
+```
 
 ## Local run
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate
@@ -54,87 +65,81 @@ cp .env.example .env
 uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## Example request
-```bash
-curl -X POST http://localhost:8000/reverse \
-  -H "Content-Type: application/json" \
-  -d '{
-    "output_text": "Step 1: Think through constraints. Step 2: return JSON.",
-    "deterministic": true,
-    "seed": 1337
-  }'
-```
+## API
 
-## Example response (strict JSON)
+### `GET /health`
+Health check.
+
+### `POST /reverse`
+Request:
+
 ```json
 {
-  "request_id": "f6c9...",
-  "cached": false,
-  "inferred_prompt": "Think step-by-step. Then answer. Task: ...",
-  "prompt_style": "chain-of-thought",
-  "task_type": "reasoning",
-  "constraints_detected": ["json_format", "stepwise"],
-  "temperature_estimate": "medium",
-  "reasoning_trace": ["..."],
-  "analyzer_scores": {
-    "structure": 0.8,
-    "constraint": 0.6,
-    "tone": 0.6,
-    "format": 0.8,
-    "reasoning_depth": 0.3,
-    "injection_safety": 0.9
-  },
-  "explainability": {
-    "summary": "Detected chain-of-thought style...",
-    "key_signals": ["..."],
-    "risk_flags": ["none"]
-  },
-  "confidence_score": 0.77
+  "output_text": "1. First define assumptions. 2. Then provide code in JSON format."
 }
 ```
 
-## Tooling scripts
+Response (strict JSON):
+
+```json
+{
+  "inferred_prompt": "Think step-by-step. Then answer. Task: Generate production-ready code with comments and edge-case handling.",
+  "prompt_style": "chain-of-thought",
+  "task_type": "code",
+  "constraints_detected": ["json_format", "stepwise"],
+  "temperature_estimate": "medium",
+  "reasoning_trace": [
+    "style=chain-of-thought, task_type=code, template_markers=false",
+    "constraint_hits=json_format,stepwise"
+  ],
+  "confidence_score": 0.73
+}
+```
+
+### `POST /reverse/batch`
+Request:
+
+```json
+{
+  "items": [
+    {"output_text": "Explain this topic in 3 bullet points."},
+    {"output_text": "You are a senior reviewer. Provide concise feedback."}
+  ]
+}
+```
+
+Returns:
+
+```json
+{
+  "results": [
+    {
+      "inferred_prompt": "...",
+      "prompt_style": "instruction",
+      "task_type": "explanation",
+      "constraints_detected": ["bullet_points"],
+      "temperature_estimate": "low",
+      "reasoning_trace": ["..."],
+      "confidence_score": 0.69
+    }
+  ]
+}
+```
+
+## Testing
+
 ```bash
-python scripts/generate_synthetic_dataset.py
-python scripts/evaluate.py
-python scripts/benchmark.py
-python scripts/build.py
+pytest -q
 ```
 
 ## Docker
+
 ```bash
 docker build -t prompt-reverse-engineer .
 docker run --rm -p 8000:8000 --env-file .env prompt-reverse-engineer
 ```
 
-## Marketplace Packaging (MuleRun-style)
+## Notes
 
-### Who this is for
-- AI builders shipping prompt-heavy workflows.
-- Teams needing explainable post-hoc prompt diagnostics.
-- Marketplace operators requiring usage hooks and quota control.
-
-### When to use
-- You need quick probabilistic prompt reconstruction from generated outputs.
-- You need operational metadata (request IDs, confidence, analyzer scoring).
-- You need wrapper-level invoke interfaces for embedding in agent platforms.
-
-### When not to use
-- You require exact or legally authoritative prompt recovery.
-- You need forensic-grade attribution across unknown multi-model pipelines.
-- You need guarantees against all adversarial outputs.
-
-### Competitive positioning
-- Lightweight, deployment-friendly FastAPI core.
-- Explainability-rich outputs with analyzer score breakdown.
-- Built-in marketplace extension points: quotas, billing units, usage metering, and manifest metadata.
-
-### Benchmarks summary
-- Use `scripts/benchmark.py` for p50/p95 latency and request throughput checks in your target runtime.
-- Use `scripts/evaluate.py` for confidence/risk aggregate metrics on synthetic and curated datasets.
-
-### Example workflows
-1. Route LLM outputs to `/reverse` for prompt diagnostics in CI.
-2. Meter usage through headers (`x-user-id`, `x-api-key-id`) and middleware quota hooks.
-3. Surface `explainability` + `confidence_score` in trust dashboards.
-4. Package for marketplace ingestion using `agent_manifest.json`, `demo_requests.json`, and `demo_outputs.json`.
+- Input guards protect token/character overload via `max_input_chars` and batch limits.
+- Failures return graceful HTTP errors and log context.
