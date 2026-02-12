@@ -1,0 +1,5 @@
+{"id": 1, "output_text": "Step 1: analyze. Step 2: output JSON with confidence."}
+{"id": 2, "output_text": "You are an expert tutor. Explain recursion with examples."}
+{"id": 3, "output_text": "{{ROLE}} {{TASK}} {{CONSTRAINTS}} respond concisely."}
+{"id": 4, "output_text": "Write Python code with tests and edge-case handling."}
+{"id": 5, "output_text": "Provide a brief architecture summary in bullet points."}

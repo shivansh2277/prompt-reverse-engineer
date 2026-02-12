@@ -1,0 +1,12 @@
+[
+  {
+    "output_text": "Step 1: break down the problem. Step 2: provide JSON result with confidence.",
+    "deterministic": true,
+    "seed": 1337
+  },
+  {
+    "output_text": "You are a senior engineer. Provide concise Python code and tests.",
+    "deterministic": true,
+    "seed": 1337
+  }
+]
